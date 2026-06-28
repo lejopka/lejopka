@@ -8,10 +8,45 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install xray-knife
+        run: |
+          wget -q https://github.com/lilendian0x00/xray-knife/releases/latest/download/linux-amd64-xray-knife.zip
+          unzip -q linux-amd64-xray-knife.zip
+          chmod +x xray-knife
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python check.py
+
+      - name: Download configs
+        run: python check.py
+
+      - name: Test with xray-knife
+        run: |
+          ./xray-knife net bulk \
+            -i sub_plain.txt \
+            -o working.txt \
+            --timeout 5000 \
+            --max-latency 300 \
+            --thread 50 \
+            --url "http://www.gstatic.com/generate_204" \
+            --insecure true || true
+
+      - name: Build final sub
+        run: |
+          python3 -c "
+          import base64, os
+          from datetime import datetime
+          if os.path.exists('working.txt'):
+            lines=[l.strip() for l in open('working.txt') if l.strip() and not l.startswith('#')]
+          else:
+            lines=[l.strip() for l in open('sub_plain.txt') if l.strip() and not l.startswith('#')]
+          print(f'Рабочих серверов: {len(lines)}')
+          open('sub.txt','w').write(base64.b64encode('\n'.join(lines).encode()).decode())
+          open('README.md','w').write(f'# Lejopka VPN\n\nПодписка:\n\`\`\`\nhttps://raw.githack.com/lejopka/lejopka/main/sub.txt\n\`\`\`\n**Серверов с пингом до 300мс:** {len(lines)}\n**Обновлено:** {datetime.utcnow().strftime(\"%Y-%m-%d %H:%M UTC\")}\n')
+          "
+
       - run: |
           git config user.name "lejopka-bot"
           git config user.email "bot@lejopka"
