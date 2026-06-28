@@ -8,47 +8,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Install xray-knife
-        run: |
-          curl -sL https://github.com/lilendian0x00/xray-knife/releases/download/v1.0.8/linux-amd64-xray-knife.zip -o xk.zip
-          unzip -q xk.zip
-          ls -la
-          chmod +x xray-knife || chmod +x linux-amd64-xray-knife || true
-
-      - name: Download and filter configs
-        run: python check.py
-
-      - name: Test real connectivity
-        run: |
-          XK=./xray-knife
-          [ -f "./linux-amd64-xray-knife" ] && XK=./linux-amd64-xray-knife
-          $XK net bulk \
-            -i sub_plain.txt \
-            -o working.txt \
-            --timeout 5000 \
-            --max-latency 300 \
-            --thread 50 \
-            --url "http://cp.cloudflare.com/generate_204" \
-            --insecure true 2>/dev/null || true
-          wc -l working.txt 2>/dev/null || echo "working.txt not created"
-
-      - name: Build final subscription
-        run: |
-          python3 -c "
-          import base64, os
-          from datetime import datetime
-          src = 'working.txt' if os.path.exists('working.txt') else 'sub_plain.txt'
-          lines=[l.strip() for l in open(src) if l.strip() and not l.startswith('#')]
-          print(f'Серверов: {len(lines)} из {src}')
-          open('sub.txt','w').write(base64.b64encode('\n'.join(lines).encode()).decode())
-          open('README.md','w').write(f'# Lejopka VPN\n\nПодписка:\n\`\`\`\nhttps://raw.githack.com/lejopka/lejopka/main/sub.txt\n\`\`\`\n**Серверов:** {len(lines)}\n**Обновлено:** {datetime.utcnow().strftime(\"%Y-%m-%d %H:%M UTC\")}\n')
-          "
-
+      - run: python check.py
       - run: |
           git config user.name "lejopka-bot"
           git config user.email "bot@lejopka"
